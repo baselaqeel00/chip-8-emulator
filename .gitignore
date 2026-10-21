@@ -1,0 +1,16 @@
+# Visual Studio Auto-Generated Files
+.vs/
+x64/
+Debug/
+Release/
+*.user
+*.suo
+
+# NuGet Packages Folder
+packages/
+
+# Build Output
+*.exe
+*.obj
+*.pdb
+*.log
