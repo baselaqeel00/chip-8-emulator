@@ -6,7 +6,6 @@ int main(int argc, char* argv[]) {
     Chip8 chip;
     chip8_init(&chip);
 
-    // يمكنك تغيير مسار الـ ROM هنا
     load_rom(&chip, "C:/Users/VICTUS/Desktop/uni project/Chip8_Project/IBMLogo.ch8");
 
     SDL_Window* window = NULL;

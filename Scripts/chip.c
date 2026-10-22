@@ -60,10 +60,40 @@ void chip8_cycle(Chip8* ch) {
         if (opcode == 0x00E0) {
             ClearScreen(ch);
         }
+        else if (opcode == 0x00EE) {
+            ch->sp--;
+            ch->PC = ch->stack[ch->sp];
+        }
         break;
 
     case 0x1000:
         ch->PC = NNN;
+        break;
+
+    case 0x2000:
+        ch->stack[ch->sp] = ch->PC;
+        ch->sp++;
+        ch->PC = NNN;
+        break;
+
+    case 0x3000:
+        if (ch->V[X] == NN) {
+            ch->PC += 2;
+        }
+        break;
+
+    case 0x4000:
+        if (ch->V[X] != NN) {
+            ch->PC += 2;
+        }
+    break;
+
+    case 0x5000:
+        if(N == 0x0){
+            if (ch->V[X] == ch->V[Y]) {
+                ch->PC += 2;
+            }
+        }
         break;
 
     case 0x6000:
@@ -72,6 +102,54 @@ void chip8_cycle(Chip8* ch) {
 
     case 0x7000:
         ch->V[X] = ch->V[X] + NN;
+        break;
+
+    case 0x8000:
+        if (N == 0x1) {
+            ch->V[X] = ch->V[Y] | ch->V[X];
+        }
+        if (N == 0x2) {
+            ch->V[X] = ch->V[Y] & ch->V[X];
+        }
+        if (N == 0x3) {
+            ch->V[X] = ch->V[Y] ^ ch->V[X];
+        }
+        if (N == 0x4) {
+            uint16_t sum = ch->V[X] + ch->V[Y];
+
+            if (sum > 255) {
+                ch->V[0xF] = 1;
+            }
+            else {
+                ch->V[0xF] = 0;
+            }
+
+            ch->V[X] = sum & 0xFF;
+        }
+        if (N == 0x5) {
+            ch->V[X] = ch->V[X] - ch->V[Y];
+        }
+        if (N == 0x7) {
+            ch->V[X] = ch->V[Y] - ch->V[X];
+        }
+        if (N == 0x6) {
+            uint8_t lsb = ch->V[X] & 0x1;
+            ch->V[X] >>= 1;
+            ch->V[0xF] = lsb;
+        }
+        if (N == 0xE) {
+            uint8_t msb = (ch->V[X] & 0x80) >> 7;
+            ch->V[X] <<= 1;
+            ch->V[0xF] = msb;
+        }
+        break;
+
+    case 0x9000:
+        if (N == 0) {
+            if (ch->V[X] != ch->V[Y]) {
+                ch->PC += 2;
+            }
+        }
         break;
 
     case 0xA000:
