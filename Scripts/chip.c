@@ -1,7 +1,5 @@
-#include <stdint.h>
-#include <stdbool.h>
+#include "chip8.h"
 #include <stdio.h>
-#include <SDL.h>
 
 const uint8_t fontset[80] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -22,21 +20,6 @@ const uint8_t fontset[80] = {
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
-typedef struct {
-    uint8_t Memory[4096];
-    uint8_t V[16];
-    uint8_t sp;
-    uint8_t delay_timer;
-    uint8_t sound_timer;
-    uint8_t keypad[16];
-
-    uint16_t I;
-    uint16_t PC;
-    uint16_t stack[16];
-
-    uint32_t gfx[64 * 32];
-} Chip8;
-
 void chip8_init(Chip8* chip) {
     *chip = (Chip8){ 0 };
     chip->PC = 0x200;
@@ -46,10 +29,10 @@ void chip8_init(Chip8* chip) {
     }
 }
 
-void load_rom(Chip8* ch) {
-    FILE* rom = fopen("C:/Users/VICTUS/Desktop/uni project/Chip8_Project/IBMLogo.ch8", "rb");
+void load_rom(Chip8* ch, const char* filename) {
+    FILE* rom = fopen(filename, "rb");
     if (rom == NULL) {
-        printf("There is no rom \n");
+        printf("Error: Cannot open ROM file %s\n", filename);
         return;
     }
 
@@ -122,55 +105,7 @@ void chip8_cycle(Chip8* ch) {
     }
 
     default:
-        printf("working on it: 0x%X\n", opcode);
+        printf("Unimplemented Opcode: 0x%X\n", opcode);
         break;
     }
-}
-
-void Draw_Screen(const Chip8* chip, SDL_Renderer* renderer, SDL_Texture* texture) {
-    SDL_UpdateTexture(texture, NULL, chip->gfx, 64 * sizeof(uint32_t));
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
-}
-
-int main(int argc, char* argv[]) {
-    Chip8 chip;
-    chip8_init(&chip);
-
-    load_rom(&chip);
-
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        printf("SDL Init Error: %s\n", SDL_GetError());
-        return 1;
-    }
-
-    SDL_Window* window = SDL_CreateWindow("CHIP-8 Emulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 320, SDL_WINDOW_SHOWN);
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 64, 32);
-
-    bool isRunning = true;
-
-    while (isRunning) {
-        SDL_Event event;
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) {
-                isRunning = false;
-            }
-        }
-
-        for (int i = 0; i < 10; i++) {
-            chip8_cycle(&chip);
-        }
-
-        Draw_Screen(&chip, renderer, texture);
-        SDL_Delay(2);
-    }
-
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
-
-    return 0;
 }
