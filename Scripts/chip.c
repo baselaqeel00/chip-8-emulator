@@ -1,4 +1,4 @@
-#include "chip8.h"
+#include "chip.h"
 #include <stdio.h>
 
 const uint8_t fontset[80] = {
