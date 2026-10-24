@@ -156,6 +156,12 @@ void chip8_cycle(Chip8* ch) {
         ch->I = NNN;
         break;
 
+    case 0xC000: {
+        uint8_t random = rand() % 256;
+        ch->V[X] = random & NN;
+        break;
+    }
+
     case 0xD000: {
         uint8_t x_pos = ch->V[X] % 64;
         uint8_t y_pos = ch->V[Y] % 32;
@@ -163,15 +169,21 @@ void chip8_cycle(Chip8* ch) {
         ch->V[0xF] = 0;
 
         for (int row = 0; row < N; row++) {
+            uint8_t current_y = y_pos + row;
+
+            if (current_y >= 32) break;
+
             uint8_t sprite_byte = ch->Memory[ch->I + row];
 
             for (int col = 0; col < 8; col++) {
-                if ((sprite_byte & (0x80 >> col)) != 0) {
-                    int px = (x_pos + col) % 64;
-                    int py = (y_pos + row) % 32;
-                    int index = px + (py * 64);
+                uint8_t current_x = x_pos + col;
 
-                    if (ch->gfx[index] == 0xFFFFFFFF) {
+                if (current_x >= 64) break;
+
+                if ((sprite_byte & (0x80 >> col)) != 0) {
+                    int index = current_x + (current_y * 64);
+
+                    if (ch->gfx[index] != 0) {
                         ch->V[0xF] = 1;
                     }
 
@@ -180,6 +192,79 @@ void chip8_cycle(Chip8* ch) {
             }
         }
         break;
+    }
+
+    case 0xE000: {
+        if (NN == 0x9E) {
+            if (ch->keypad[ch->V[X]] != 0) {
+                ch->PC += 2;
+            }
+        }
+        else if (NN == 0xA1) {
+            if (ch->keypad[ch->V[X]] == 0) {
+                ch->PC += 2;
+            }
+        }
+
+        break; 
+    }
+
+    case 0xF000: {
+        switch (NN) {
+        case 0x07: 
+            ch->V[X] = ch->delay_timer;
+            break;
+        case 0x15:
+            ch->delay_timer = ch->V[X];
+            break;
+        case 0x18:
+            ch->sound_timer = ch->V[X];
+            break;
+        
+        case 0x1E: {
+            ch->I += ch->V[X];
+            break;
+        }
+        case 0x0A: {
+            bool key_pressed = false;
+
+            for (int i = 0; i < 16; i++) {
+                if (ch->keypad[i] != 0) {
+                    ch->V[X] = i;      
+                    key_pressed = true;
+                    break;
+                }
+            }
+
+            if (!key_pressed) {
+                ch->PC -= 2;
+            }
+            break;
+        }
+        case 0x29: {
+            uint8_t character = ch->V[X] & 0x0F;
+            ch->I = 0x050 + (character * 5);
+            break;
+        }
+        case 0x33: {
+            uint8_t value = ch->V[X];
+
+            ch->Memory[ch->I] = value / 100;
+            ch->Memory[ch->I + 1] = (value / 10) % 10;
+            ch->Memory[ch->I + 2] = value % 10;
+
+            break;
+        }
+        case 0x55: {
+            for (int i = 0; i <= X; i++) ch->Memory[ch->I + i] = ch->V[i];
+            break;
+        }
+        case 0x65: {
+            for (int i = 0; i <= X; i++) ch->V[i] = ch->Memory[ch->I + i];
+            break;
+        }
+            break;
+        }
     }
 
     default:
