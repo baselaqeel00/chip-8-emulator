@@ -21,9 +21,7 @@ bool init_display(SDL_Window** window, SDL_Renderer** renderer, SDL_Texture** te
 
 void Draw_Screen(const Chip8* chip, SDL_Renderer* renderer, SDL_Texture* texture) {
     SDL_UpdateTexture(texture, NULL, chip->gfx, 64 * sizeof(uint32_t));
-    SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
 }
 
 void close_display(SDL_Window* window, SDL_Renderer* renderer, SDL_Texture* texture) {
