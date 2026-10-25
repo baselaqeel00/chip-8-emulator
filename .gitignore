@@ -1,16 +1,30 @@
-# Visual Studio Auto-Generated Files
+# Visual Studio Auto-Generated & Build Output
 .vs/
 x64/
 Debug/
 Release/
 *.user
-*.suo
+*.aps
+*.VC.db
+*.opendb
+*.ipch
+*.log
+*.tlog
 
-# NuGet Packages Folder
-packages/
+# VS Code Directory
+.vscode/
 
-# Build Output
+# ImGui Temporary Configuration
+imgui.ini
+
+# Executables & Binary Files
 *.exe
 *.obj
 *.pdb
-*.log
+*.ilk
+*.idb
+*.obj
+*.o
+*.a
+*.lib
+*.dll
