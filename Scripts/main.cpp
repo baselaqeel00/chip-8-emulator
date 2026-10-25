@@ -1,9 +1,9 @@
-﻿#include <iostream>
+﻿#define SDL_MAIN_HANDLED
+#include <iostream>
 #include <vector>
 #include <string>
 #include <cstdlib>
 #include <ctime>
-
 #include <SDL.h>
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
