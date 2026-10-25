@@ -2,7 +2,7 @@
 
 A high-performance, cross-platform **CHIP-8 virtual machine interpreter** written in C and C++. This project demonstrates low-level systems programming, instruction decoding, precise hardware timing, and seamless interop between a pure C core and a modern C++/SDL2/ImGui frontend.
 
-![CHIP-8 Demo](docs/demo.png) *(أضف لقطة شاشة للمحاكي أثناء تشغيل إحدى الألعاب هنا مستقبلاً)*
+![CHIP-8 Demo](docs/demo.png)
 
 ---
 
