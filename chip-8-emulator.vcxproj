@@ -144,7 +144,6 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Scripts\chip.c" />
     <ClCompile Include="Scripts\display.c" />
-    <ClCompile Include="Scripts\main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imconfig.h" />

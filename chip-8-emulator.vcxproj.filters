@@ -24,9 +24,6 @@
     <ClCompile Include="Scripts\display.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Scripts\main.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
