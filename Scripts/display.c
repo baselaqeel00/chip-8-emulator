@@ -13,7 +13,7 @@ bool init_display(SDL_Window** window, SDL_Renderer** renderer, SDL_Texture** te
     *renderer = SDL_CreateRenderer(*window, -1, SDL_RENDERER_ACCELERATED);
     if (!*renderer) return false;
 
-    *texture = SDL_CreateTexture(*renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_STREAMING, 64, 32);
+    *texture = SDL_CreateTexture(*renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 64, 32);
     if (!*texture) return false;
 
     return true;

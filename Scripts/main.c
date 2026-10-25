@@ -70,12 +70,14 @@ void update_timers(Chip8* chip) {
 }
 
 int main(int argc, char* argv[]) {
+
+    srand((unsigned int)time(NULL));
     printf("=== Starting CHIP-8 Emulator ===\n");
 
     Chip8 chip;
     chip8_init(&chip);
 
-    const char* rom_path = "C:/Users/VICTUS/Desktop/uni project/Chip8_Project/IBMLogo.ch8";
+    const char* rom_path = "C:/Users/VICTUS/Desktop/uni project/Chip8_Project/Tetris.ch8";
     load_rom(&chip, rom_path);
 
     printf("First Opcode in Memory: 0x%02X%02X\n", chip.Memory[0x200], chip.Memory[0x201]);
@@ -92,16 +94,22 @@ int main(int argc, char* argv[]) {
     bool isRunning = true;
 
     while (isRunning) {
+        Uint32 frame_start = SDL_GetTicks();
         handle_input(&chip, &isRunning);
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 12; i++) {
             chip8_cycle(&chip);
         }
 
         update_timers(&chip);
 
         Draw_Screen(&chip, renderer, texture);
-        SDL_Delay(2);
+        Uint32 frame_time = SDL_GetTicks() - frame_start;
+        const Uint32 TARGET_FRAME_TIME = 1000 / 60;
+
+        if (frame_time < TARGET_FRAME_TIME) {
+            SDL_Delay(TARGET_FRAME_TIME - frame_time);
+        }
     }
 
     close_display(window, renderer, texture);

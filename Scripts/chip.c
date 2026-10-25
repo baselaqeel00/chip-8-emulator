@@ -1,5 +1,7 @@
 #include "chip.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 const uint8_t fontset[80] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -105,45 +107,55 @@ void chip8_cycle(Chip8* ch) {
         break;
 
     case 0x8000:
-        if (N == 0x1) {
-            ch->V[X] = ch->V[Y] | ch->V[X];
-        }
-        if (N == 0x2) {
-            ch->V[X] = ch->V[Y] & ch->V[X];
-        }
-        if (N == 0x3) {
-            ch->V[X] = ch->V[Y] ^ ch->V[X];
-        }
-        if (N == 0x4) {
+    switch (N) {
+        case 0x0: // 8XY0: Set VX = VY
+            ch->V[X] = ch->V[Y];
+            break;
+
+        case 0x1: // 8XY1: Set VX = VX OR VY
+            ch->V[X] |= ch->V[Y];
+            break;
+
+        case 0x2: // 8XY2: Set VX = VX AND VY
+            ch->V[X] &= ch->V[Y];
+            break;
+
+        case 0x3: // 8XY3: Set VX = VX XOR VY
+            ch->V[X] ^= ch->V[Y];
+            break;
+
+        case 0x4: { // 8XY4: Set VX = VX + VY, set VF = carry
             uint16_t sum = ch->V[X] + ch->V[Y];
-
-            if (sum > 255) {
-                ch->V[0xF] = 1;
-            }
-            else {
-                ch->V[0xF] = 0;
-            }
-
+            ch->V[0xF] = (sum > 255) ? 1 : 0;
             ch->V[X] = sum & 0xFF;
+            break;
         }
-        if (N == 0x5) {
-            ch->V[X] = ch->V[X] - ch->V[Y];
-        }
-        if (N == 0x7) {
-            ch->V[X] = ch->V[Y] - ch->V[X];
-        }
-        if (N == 0x6) {
+
+        case 0x5: // 8XY5: Set VX = VX - VY, set VF = NOT borrow
+            ch->V[0xF] = (ch->V[X] >= ch->V[Y]) ? 1 : 0;
+            ch->V[X] -= ch->V[Y];
+            break;
+
+        case 0x6: { // 8XY6: Shift Right
             uint8_t lsb = ch->V[X] & 0x1;
             ch->V[X] >>= 1;
             ch->V[0xF] = lsb;
+            break;
         }
-        if (N == 0xE) {
+
+        case 0x7: // 8XY7: Set VX = VY - VX, set VF = NOT borrow
+            ch->V[0xF] = (ch->V[Y] >= ch->V[X]) ? 1 : 0;
+            ch->V[X] = ch->V[Y] - ch->V[X];
+            break;
+
+        case 0xE: { // 8XYE: Shift Left
             uint8_t msb = (ch->V[X] & 0x80) >> 7;
             ch->V[X] <<= 1;
             ch->V[0xF] = msb;
+            break;
         }
-        break;
-
+    }
+    break;
     case 0x9000:
         if (N == 0) {
             if (ch->V[X] != ch->V[Y]) {
@@ -209,63 +221,70 @@ void chip8_cycle(Chip8* ch) {
         break; 
     }
 
-    case 0xF000: {
+    case 0xF000:
         switch (NN) {
-        case 0x07: 
+        case 0x07: // FX07: Set VX = delay_timer
             ch->V[X] = ch->delay_timer;
             break;
-        case 0x15:
-            ch->delay_timer = ch->V[X];
-            break;
-        case 0x18:
-            ch->sound_timer = ch->V[X];
-            break;
-        
-        case 0x1E: {
-            ch->I += ch->V[X];
-            break;
-        }
-        case 0x0A: {
-            bool key_pressed = false;
 
+        case 0x0A: { // FX0A: Wait for key press
+            bool key_pressed = false;
             for (int i = 0; i < 16; i++) {
                 if (ch->keypad[i] != 0) {
-                    ch->V[X] = i;      
+                    ch->V[X] = i;
                     key_pressed = true;
                     break;
                 }
             }
-
             if (!key_pressed) {
-                ch->PC -= 2;
+                ch->PC -= 2; // إعادة نفس التعليمة حتى يتم الضغط على زر
             }
             break;
         }
-        case 0x29: {
+
+        case 0x15: // FX15: Set delay_timer = VX
+            ch->delay_timer = ch->V[X];
+            break;
+
+        case 0x18: // FX18: Set sound_timer = VX
+            ch->sound_timer = ch->V[X];
+            break;
+
+        case 0x1E: // FX1E: Add VX to Index Register I
+            ch->I += ch->V[X];
+            break;
+
+        case 0x29: { // FX29: Point I to Font Character in VX
             uint8_t character = ch->V[X] & 0x0F;
             ch->I = 0x050 + (character * 5);
             break;
         }
-        case 0x33: {
-            uint8_t value = ch->V[X];
 
+        case 0x33: { // FX33: Binary-Coded Decimal (BCD)
+            uint8_t value = ch->V[X];
             ch->Memory[ch->I] = value / 100;
             ch->Memory[ch->I + 1] = (value / 10) % 10;
             ch->Memory[ch->I + 2] = value % 10;
+            break;
+        }
 
+        case 0x55: // FX55: Dump registers V0..VX to memory starting at I
+            for (int i = 0; i <= X; i++) {
+                ch->Memory[ch->I + i] = ch->V[i];
+            }
+            break;
+
+        case 0x65: // FX65: Load registers V0..VX from memory starting at I
+            for (int i = 0; i <= X; i++) {
+                ch->V[i] = ch->Memory[ch->I + i];
+            }
+            break;
+
+        default:
+            printf("Unimplemented 0xF000 Opcode: 0x%04X\n", opcode);
             break;
         }
-        case 0x55: {
-            for (int i = 0; i <= X; i++) ch->Memory[ch->I + i] = ch->V[i];
-            break;
-        }
-        case 0x65: {
-            for (int i = 0; i <= X; i++) ch->V[i] = ch->Memory[ch->I + i];
-            break;
-        }
-            break;
-        }
-    }
+        break;
 
     default:
         printf("Unimplemented Opcode: 0x%X\n", opcode);
