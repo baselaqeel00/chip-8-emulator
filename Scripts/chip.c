@@ -2,24 +2,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdbool.h>
 
 const uint8_t fontset[80] = {
-    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
-    0x20, 0x60, 0x20, 0x20, 0x70, // 1
-    0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
-    0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
-    0x90, 0x90, 0xF0, 0x10, 0x10, // 4
-    0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
-    0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
-    0xF0, 0x10, 0x20, 0x40, 0x40, // 7
-    0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
-    0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
-    0xF0, 0x90, 0xF0, 0x90, 0x90, // A
-    0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
-    0xF0, 0x80, 0x80, 0x80, 0xF0, // C
-    0xE0, 0x90, 0x90, 0x90, 0xE0, // D
-    0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
-    0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+    0xF0, 0x90, 0x90, 0x90, 0xF0,
+    0x20, 0x60, 0x20, 0x20, 0x70,
+    0xF0, 0x10, 0xF0, 0x80, 0xF0,
+    0xF0, 0x10, 0xF0, 0x10, 0xF0,
+    0x90, 0x90, 0xF0, 0x10, 0x10,
+    0xF0, 0x80, 0xF0, 0x10, 0xF0,
+    0xF0, 0x80, 0xF0, 0x90, 0xF0,
+    0xF0, 0x10, 0x20, 0x40, 0x40,
+    0xF0, 0x90, 0xF0, 0x90, 0xF0,
+    0xF0, 0x90, 0xF0, 0x10, 0xF0,
+    0xF0, 0x90, 0xF0, 0x90, 0x90,
+    0xE0, 0x90, 0xE0, 0x90, 0xE0,
+    0xF0, 0x80, 0x80, 0x80, 0xF0,
+    0xE0, 0x90, 0x90, 0x90, 0xE0,
+    0xF0, 0x80, 0xF0, 0x80, 0xF0,
+    0xF0, 0x80, 0xF0, 0x80, 0x80
 };
 
 void chip8_init(Chip8* chip) {
@@ -47,7 +48,7 @@ void ClearScreen(Chip8* ch) {
 }
 
 void chip8_cycle(Chip8* ch) {
-    uint16_t opcode = (ch->Memory[ch->PC] << 8) | ch->Memory[ch->PC + 1];
+    uint16_t opcode = (ch->Memory[ch->PC & 0x0FFF] << 8) | ch->Memory[(ch->PC + 1) & 0x0FFF];
     ch->PC += 2;
 
     uint16_t NNN = opcode & 0x0FFF;
@@ -63,19 +64,21 @@ void chip8_cycle(Chip8* ch) {
             ClearScreen(ch);
         }
         else if (opcode == 0x00EE) {
+            if (ch->sp == 0) break;
             ch->sp--;
-            ch->PC = ch->stack[ch->sp];
+            ch->PC = ch->stack[ch->sp] & 0x0FFF;
         }
         break;
 
     case 0x1000:
-        ch->PC = NNN;
+        ch->PC = NNN & 0x0FFF;
         break;
 
     case 0x2000:
+        if (ch->sp >= 16) break;
         ch->stack[ch->sp] = ch->PC;
         ch->sp++;
-        ch->PC = NNN;
+        ch->PC = NNN & 0x0FFF;
         break;
 
     case 0x3000:
@@ -88,10 +91,10 @@ void chip8_cycle(Chip8* ch) {
         if (ch->V[X] != NN) {
             ch->PC += 2;
         }
-    break;
+        break;
 
     case 0x5000:
-        if(N == 0x0){
+        if (N == 0x0) {
             if (ch->V[X] == ch->V[Y]) {
                 ch->PC += 2;
             }
@@ -107,55 +110,61 @@ void chip8_cycle(Chip8* ch) {
         break;
 
     case 0x8000:
-    switch (N) {
-        case 0x0: // 8XY0: Set VX = VY
+        switch (N) {
+        case 0x0:
             ch->V[X] = ch->V[Y];
             break;
 
-        case 0x1: // 8XY1: Set VX = VX OR VY
+        case 0x1:
             ch->V[X] |= ch->V[Y];
             break;
 
-        case 0x2: // 8XY2: Set VX = VX AND VY
+        case 0x2:
             ch->V[X] &= ch->V[Y];
             break;
 
-        case 0x3: // 8XY3: Set VX = VX XOR VY
+        case 0x3:
             ch->V[X] ^= ch->V[Y];
             break;
 
-        case 0x4: { // 8XY4: Set VX = VX + VY, set VF = carry
+        case 0x4: {
             uint16_t sum = ch->V[X] + ch->V[Y];
-            ch->V[0xF] = (sum > 255) ? 1 : 0;
+            uint8_t flag = (sum > 255) ? 1 : 0;
             ch->V[X] = sum & 0xFF;
+            ch->V[0xF] = flag;
             break;
         }
 
-        case 0x5: // 8XY5: Set VX = VX - VY, set VF = NOT borrow
-            ch->V[0xF] = (ch->V[X] >= ch->V[Y]) ? 1 : 0;
+        case 0x5: {
+            uint8_t flag = (ch->V[X] >= ch->V[Y]) ? 1 : 0;
             ch->V[X] -= ch->V[Y];
+            ch->V[0xF] = flag;
             break;
+        }
 
-        case 0x6: { // 8XY6: Shift Right
+        case 0x6: {
             uint8_t lsb = ch->V[X] & 0x1;
             ch->V[X] >>= 1;
             ch->V[0xF] = lsb;
             break;
         }
 
-        case 0x7: // 8XY7: Set VX = VY - VX, set VF = NOT borrow
-            ch->V[0xF] = (ch->V[Y] >= ch->V[X]) ? 1 : 0;
+        case 0x7: {
+            uint8_t flag = (ch->V[Y] >= ch->V[X]) ? 1 : 0;
             ch->V[X] = ch->V[Y] - ch->V[X];
+            ch->V[0xF] = flag;
             break;
+        }
 
-        case 0xE: { // 8XYE: Shift Left
+        case 0xE: {
             uint8_t msb = (ch->V[X] & 0x80) >> 7;
             ch->V[X] <<= 1;
             ch->V[0xF] = msb;
             break;
         }
-    }
-    break;
+        }
+        break;
+
     case 0x9000:
         if (N == 0) {
             if (ch->V[X] != ch->V[Y]) {
@@ -166,6 +175,10 @@ void chip8_cycle(Chip8* ch) {
 
     case 0xA000:
         ch->I = NNN;
+        break;
+
+    case 0xB000:
+        ch->PC = (NNN + ch->V[0]) & 0x0FFF;
         break;
 
     case 0xC000: {
@@ -185,7 +198,7 @@ void chip8_cycle(Chip8* ch) {
 
             if (current_y >= 32) break;
 
-            uint8_t sprite_byte = ch->Memory[ch->I + row];
+            uint8_t sprite_byte = ch->Memory[(ch->I + row) & 0x0FFF];
 
             for (int col = 0; col < 8; col++) {
                 uint8_t current_x = x_pos + col;
@@ -217,17 +230,16 @@ void chip8_cycle(Chip8* ch) {
                 ch->PC += 2;
             }
         }
-
-        break; 
+        break;
     }
 
     case 0xF000:
         switch (NN) {
-        case 0x07: // FX07: Set VX = delay_timer
+        case 0x07:
             ch->V[X] = ch->delay_timer;
             break;
 
-        case 0x0A: { // FX0A: Wait for key press
+        case 0x0A: {
             bool key_pressed = false;
             for (int i = 0; i < 16; i++) {
                 if (ch->keypad[i] != 0) {
@@ -237,46 +249,46 @@ void chip8_cycle(Chip8* ch) {
                 }
             }
             if (!key_pressed) {
-                ch->PC -= 2; // إعادة نفس التعليمة حتى يتم الضغط على زر
+                ch->PC -= 2;
             }
             break;
         }
 
-        case 0x15: // FX15: Set delay_timer = VX
+        case 0x15:
             ch->delay_timer = ch->V[X];
             break;
 
-        case 0x18: // FX18: Set sound_timer = VX
+        case 0x18:
             ch->sound_timer = ch->V[X];
             break;
 
-        case 0x1E: // FX1E: Add VX to Index Register I
+        case 0x1E:
             ch->I += ch->V[X];
             break;
 
-        case 0x29: { // FX29: Point I to Font Character in VX
+        case 0x29: {
             uint8_t character = ch->V[X] & 0x0F;
             ch->I = 0x050 + (character * 5);
             break;
         }
 
-        case 0x33: { // FX33: Binary-Coded Decimal (BCD)
+        case 0x33: {
             uint8_t value = ch->V[X];
-            ch->Memory[ch->I] = value / 100;
-            ch->Memory[ch->I + 1] = (value / 10) % 10;
-            ch->Memory[ch->I + 2] = value % 10;
+            ch->Memory[ch->I & 0x0FFF] = value / 100;
+            ch->Memory[(ch->I + 1) & 0x0FFF] = (value / 10) % 10;
+            ch->Memory[(ch->I + 2) & 0x0FFF] = value % 10;
             break;
         }
 
-        case 0x55: // FX55: Dump registers V0..VX to memory starting at I
+        case 0x55:
             for (int i = 0; i <= X; i++) {
-                ch->Memory[ch->I + i] = ch->V[i];
+                ch->Memory[(ch->I + i) & 0x0FFF] = ch->V[i];
             }
             break;
 
-        case 0x65: // FX65: Load registers V0..VX from memory starting at I
+        case 0x65:
             for (int i = 0; i <= X; i++) {
-                ch->V[i] = ch->Memory[ch->I + i];
+                ch->V[i] = ch->Memory[(ch->I + i) & 0x0FFF];
             }
             break;
 

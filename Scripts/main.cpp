@@ -21,6 +21,22 @@ void open_url(const char* url) {
 #endif
 }
 
+void audio_callback(void* userdata, Uint8* stream, int len) {
+    Sint16* buffer = (Sint16*)stream;
+    int length = len / sizeof(Sint16);
+    static double sample_index = 0.0;
+
+    const double frequency = 440.0;
+    const double sample_rate = 44100.0;
+    const Sint16 amplitude = 3000; 
+
+    for (int i = 0; i < length; i++) {
+        double period = sample_rate / frequency;
+        buffer[i] = (fmod(sample_index, period) < (period / 2.0)) ? amplitude : -amplitude;
+        sample_index++;
+    }
+}
+
 void handle_input(Chip8* chip, bool* isRunning) {
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
@@ -130,6 +146,24 @@ int main(int argc, char* argv[]) {
     bool isPaused = false;
     int cycles_per_frame = 11;
 
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) < 0) {
+        printf("SDL Audio Initialization Error: %s\n", SDL_GetError());
+    }
+
+    SDL_AudioSpec desired_spec, obtained_spec;
+    SDL_zero(desired_spec);
+    desired_spec.freq = 44100;         
+    desired_spec.format = AUDIO_S16SYS; 
+    desired_spec.channels = 1;         
+    desired_spec.samples = 2048;       
+    desired_spec.callback = audio_callback;
+
+    SDL_AudioDeviceID audio_device = SDL_OpenAudioDevice(NULL, 0, &desired_spec, &obtained_spec, 0);
+
+    if (audio_device == 0) {
+        printf("Failed to open audio device: %s\n", SDL_GetError());
+    }
+
     while (isRunning) {
         Uint32 frame_start = SDL_GetTicks();
 
@@ -140,6 +174,13 @@ int main(int argc, char* argv[]) {
                 chip8_cycle(&chip);
             }
             update_timers(&chip);
+        }
+
+        if (chip.sound_timer > 0) {
+            SDL_PauseAudioDevice(audio_device, 0);
+        }
+        else {
+            SDL_PauseAudioDevice(audio_device, 1);
         }
 
         ImGui_ImplSDLRenderer2_NewFrame();
@@ -157,7 +198,7 @@ int main(int argc, char* argv[]) {
         }
         ImGui::SameLine();
         if (ImGui::Button("LinkedIn Profile")) {
-            open_url("https://linkedin.com");
+            open_url("https://www.linkedin.com/in/bassel-aqeel/");
         }
 
         ImGui::Spacing();
@@ -203,6 +244,11 @@ int main(int argc, char* argv[]) {
         if (frame_time < TARGET_FRAME_TIME) {
             SDL_Delay(TARGET_FRAME_TIME - frame_time);
         }
+    }
+
+
+    if (audio_device != 0) {
+        SDL_CloseAudioDevice(audio_device);
     }
 
     ImGui_ImplSDLRenderer2_Shutdown();
