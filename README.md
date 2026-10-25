@@ -54,6 +54,7 @@ The original 16-key hexadecimal keypad is mapped to standard QWERTY keys:
 g++ -std=c++17 src/main.cpp src/chip.c src/display.c \
     -Iinclude -lSDL2 -lSDL2main \
     -o chip8_emulator
+```
 🧪 Validated Games & ROMs
 Tested and verified against classic CHIP-8 software and standard test suites:
 
