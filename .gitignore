@@ -17,6 +17,9 @@ Release/
 # ImGui Temporary Configuration
 imgui.ini
 
+packages/
+packages.config
+
 # Executables & Binary Files
 *.exe
 *.obj
